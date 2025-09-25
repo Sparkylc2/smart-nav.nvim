@@ -1,5 +1,5 @@
 # smart-nav.nvim
-Smart semantic navigation for Neovim. Jump to meaningful positions in your code.
+Smart semantic navigation for Neovim. Jump to meaningful positions in your code, jump in and out of parentheses, quotes, and other delimeters, all with one key.
 
 This was developed as a personal utility, and as such is primarily tested with C++ and JS in mind. 
 Contributions are welcome!
