@@ -23,8 +23,8 @@ lazy.nvim:
   "sparkylc2/smart-nav.nvim",
   config = function()
     require("smart-nav").setup()
-    vim.keymap.set("n", "<C-;>", require("smart-nav").next)
-    vim.keymap.set("n", "<C-S-;>", require("smart-nav").prev)
+    vim.keymap.set({"n", "i"}, "<C-;>", require("smart-nav").next)
+    vim.keymap.set({"n", "i"}, "<C-S-;>", require("smart-nav").prev)
   end,
 }
 ```
@@ -35,8 +35,8 @@ use {
   "sparkylc2/smart-nav.nvim",
   config = function()
     require("smart-nav").setup()
-    vim.keymap.set("n", "<C-;>", require("smart-nav").next)
-    vim.keymap.set("n", "<C-S-;>", require("smart-nav").prev)  
+    vim.keymap.set({"n", "i"}, "<C-;>", require("smart-nav").next)
+    vim.keymap.set({"n", "i"}, "<C-S-;>", require("smart-nav").prev)
 end,
 }
 ```
