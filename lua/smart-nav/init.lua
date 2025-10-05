@@ -39,11 +39,15 @@ local config = {
 		type_identifier = true,
 		sized_type_specifier = true,
 	},
-	container_types = {
+	-- containers for arguments/parameters - only jump inside if has content
+	argument_containers = {
 		parameter_list = true,
 		argument_list = true,
 		formal_parameters = true,
 		parameters = true,
+	},
+	-- containers for bodies/blocks - always jump inside
+	container_types = {
 		compound_statement = true,
 		statement_block = true,
 		block = true,
@@ -283,6 +287,23 @@ local function collect_waypoints()
 					push(waypoints, er, ec)
 				end
 
+				-- argument containers - only jump inside if has content
+				if config.argument_containers[t] then
+					local has_content = false
+					for child in node:iter_children() do
+						if child:named() then
+							has_content = true
+							break
+						end
+					end
+
+					if has_content then
+						push(waypoints, sr, sc + 1) -- after opening
+					end
+					push(waypoints, er, ec) -- at closing (always)
+				end
+
+				-- body/block containers - always jump inside
 				if config.container_types[t] then
 					push(waypoints, sr, sc + 1) -- after opening
 					push(waypoints, er, ec) -- at closing
@@ -471,6 +492,7 @@ function M.setup(user_config)
 	config.operators = merge_config(config.operators, user_config.operators)
 	config.word_operators = merge_config(config.word_operators, user_config.word_operators)
 	config.target_types = merge_config(config.target_types, user_config.target_types)
+	config.argument_containers = merge_config(config.argument_containers, user_config.argument_containers)
 	config.container_types = merge_config(config.container_types, user_config.container_types)
 
 	-- create autocmds
