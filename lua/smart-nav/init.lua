@@ -139,7 +139,18 @@ local function collect_char_waypoints(range_top, range_bot)
 				elseif config.closing_chars[ch] and not in_string then
 					items[#items + 1] = { row, col + 1 } -- after bracket
 				elseif config.operators[ch] and not in_string then
-					items[#items + 1] = { row, col + 1 } -- after operator
+					-- check for duplicated operators (++, --, \\, etc)
+					local prev_ch = col > 0 and string.sub(line, col, col) or nil
+					if prev_ch == ch then
+						-- skip, already handled by previous char
+					else
+						local next_ch = col + 1 < len and string.sub(line, col + 2, col + 2) or nil
+						if next_ch == ch then
+							items[#items + 1] = { row, col + 2 } -- after both operators
+						else
+							items[#items + 1] = { row, col + 1 } -- after single operator
+						end
+					end
 				end
 			end
 
