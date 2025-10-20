@@ -7,9 +7,11 @@ local config = {
 	viewport_margin = 50, -- extra lines around visible window
 	bigfile_lines = 5000, -- above this, only scan viewport
 	max_scan_cols = 2000, -- cap per-line scanning
+	use_snippet_tabstops = false,
 
 	-- extendable navigation targets
-	closing_chars = { [")"] = true, ["]"] = true, ["}"] = true },
+	opening_chars = { ["("] = "after", ["["] = "after", ["{"] = "after" },
+	closing_chars = { [")"] = "both", ["]"] = "both", ["}"] = "both" },
 	quotes = { ['"'] = true, ["'"] = true, ["`"] = true },
 	operators = {
 		[","] = true,
@@ -136,13 +138,29 @@ local function collect_char_waypoints(range_top, range_bot)
 						in_string = false
 						string_char = nil
 					end
+				elseif config.opening_chars[ch] and not in_string then
+					local mode = config.opening_chars[ch]
+					if mode ~= "neither" then
+						if mode == "before" or mode == "both" then
+							items[#items + 1] = { row, col }
+						end
+						if mode == "after" or mode == "both" or mode == true then
+							items[#items + 1] = { row, col + 1 }
+						end
+					end
 				elseif config.closing_chars[ch] and not in_string then
-					items[#items + 1] = { row, col + 1 } -- after bracket
+					local mode = config.closing_chars[ch]
+					if mode ~= "neither" then
+						if mode == "before" or mode == "both" then
+							items[#items + 1] = { row, col }
+						end
+						if mode == "after" or mode == "both" or mode == true then
+							items[#items + 1] = { row, col + 1 }
+						end
+					end
 				elseif config.operators[ch] and not in_string then
-					-- check for duplicated operators (++, --, \\, etc)
 					local prev_ch = col > 0 and string.sub(line, col, col) or nil
 					if prev_ch == ch then
-						-- skip, already handled by previous char
 					else
 						local next_ch = col + 1 < len and string.sub(line, col + 2, col + 2) or nil
 						if next_ch == ch then
@@ -152,9 +170,7 @@ local function collect_char_waypoints(range_top, range_bot)
 						end
 					end
 				end
-			end
-
-			-- check for word operators
+			end -- check for word operators
 			for word, enabled in pairs(config.word_operators) do
 				if enabled then
 					local word_len = #word
@@ -335,6 +351,32 @@ local function get_waypoints()
 	return state.waypoints
 end
 
+-- snippet tabstop navigation helpers
+local function try_snippet_jump(direction)
+	if not config.use_snippet_tabstops then
+		return false
+	end
+
+	-- try native vim.snippet (nvim 0.10+)
+	if vim.snippet then
+		local ok, active = pcall(vim.snippet.active)
+		if ok and active then
+			vim.snippet.jump(direction)
+			return true
+		end
+	end
+
+	-- fallback to luasnip
+	local ok, luasnip = pcall(require, "luasnip")
+	if ok and luasnip then
+		if luasnip.jumpable(direction) then
+			luasnip.jump(direction)
+			return true
+		end
+	end
+
+	return false
+end
 -- debounced rebuild on edits
 local function schedule_rebuild()
 	timer:stop()
@@ -353,9 +395,14 @@ end
 function M.next()
 	local now = hrtime_ms()
 	if (now - state.last_call) < config.throttle_ms then
-		return -- too fast
+		return
 	end
 	state.last_call = now
+
+	-- try snippet jump first
+	if try_snippet_jump(1) then
+		return
+	end
 
 	if state.in_jump then
 		return
@@ -395,9 +442,13 @@ end
 function M.prev()
 	local now = hrtime_ms()
 	if (now - state.last_call) < config.throttle_ms then
-		return -- too fast
+		return
 	end
 	state.last_call = now
+
+	if try_snippet_jump(-1) then
+		return
+	end
 
 	if state.in_jump then
 		return
@@ -464,9 +515,11 @@ function M.setup(user_config)
 	config.viewport_margin = user_config.viewport_margin or config.viewport_margin
 	config.bigfile_lines = user_config.bigfile_lines or config.bigfile_lines
 	config.max_scan_cols = user_config.max_scan_cols or config.max_scan_cols
+	config.use_snippet_tabstops = user_config.use_snippet_tabstops or config.use_snippet_tabstops
 
 	-- handle extendable configs
 	config.closing_chars = merge_config(config.closing_chars, user_config.closing_chars)
+	config.opening_chars = merge_config(config.opening_chars, user_config.opening_chars)
 	config.quotes = merge_config(config.quotes, user_config.quotes)
 	config.operators = merge_config(config.operators, user_config.operators)
 	config.word_operators = merge_config(config.word_operators, user_config.word_operators)

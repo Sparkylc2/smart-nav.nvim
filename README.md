@@ -9,6 +9,7 @@ Contributions are welcome!
 
 - Jumps to semantic positions: after operators, quotes, brackets
 - Treesitter-aware navigation when available
+- Integrates with snippet tabstops (optional)
 - Falls back to character-based navigation without treesitter
 - Viewport-optimized for large files
 - Debounced rebuilding for performance
@@ -30,7 +31,7 @@ lazy.nvim:
 ```
 
 packer.nvim:
-```
+```lua
 use {
   "sparkylc2/smart-nav.nvim",
   config = function()
@@ -50,14 +51,15 @@ The plugin provides two functions:
 
 ## Customization
 Navigation targets are customizable. Your config extends the defaults:
-
 - Set to `true` to enable (or add new)
 - Set to `false` to disable a default
 - Omit to keep the default
+(for `opening_chars` and `closing_chars`, set to "before", "after", "both", or "neither", where "neither" disables the target)
 
 Character-based targets
 
-`closing_chars` - characters to jump after (brackets, etc.)
+`closing_chars` - characters to jump to (brackets, etc.)
+`opening_chars` - characters to jump to (similar to closing) 
 `quotes` - quote characters (jumps inside and after)
 `operators` - single-char operators to jump after
 `word_operators` - multi-char keywords to jump after
@@ -74,12 +76,19 @@ require("smart-nav").setup({
   viewport_margin = 50,  -- extra lines around visible window
   bigfile_lines = 5000,  -- above this, only scan viewport
   max_scan_cols = 2000,  -- cap per-line scanning
+  use_snippet_tabstops = false, -- jump through snippet tabstops instead when available  
   
-  -- customize navigation targets (extends defaults)
+  -- customize navigation targets (extends defaults). 
+  -- use "before" to jump before the char, "after" to jump after, "both" for both, and "neither" to disable.
+  opening_chars = {
+    ["("] = "after",  -- keep default
+    ["‹"] = "after",  -- add custom
+    ["{"] = "both", -- disable default
+  },
   closing_chars = {
-    [")"] = true,  -- keep default
-    ["›"] = true,  -- add custom
-    ["}"] = false, -- disable default
+    [")"] = "both",  -- keep default
+    ["›"] = "both",  -- add custom
+    ["}"] = "neither", -- disable default
   },
   quotes = {
     ["«"] = true,  -- add french quote
@@ -117,7 +126,8 @@ local default_config = {
 	max_scan_cols = 2000,  -- cap per-line scanning
 	
 	-- extendable navigation targets
-	closing_chars = { [")"] = true, ["]"] = true, ["}"] = true },
+	closing_chars = { [")"] = "both", ["]"] = "both", ["}"] = "both"},
+    opening_chars = { ["("] = "after", ["["] = "after", ["{"] = "after"},
 	quotes = { ['"'] = true, ["'"] = true, ["`"] = true },
 	operators = {
 		[","] = true, [">"] = true, ["+"] = true, ["-"] = true,
